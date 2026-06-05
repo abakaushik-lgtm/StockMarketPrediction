@@ -1,10 +1,9 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.layers import LSTM, GRU, Dense, Dropout, Flatten
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import numpy as np
 import os
-
 def create_lstm_model(input_shape):
     """
     Builds and compiles the LSTM model architecture.
@@ -30,6 +29,38 @@ def create_lstm_model(input_shape):
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
 
+def create_gru_model(input_shape):
+    """
+    Builds and compiles the GRU model architecture.
+    """
+    model = Sequential()
+    
+    model.add(GRU(units=50, return_sequences=True, input_shape=input_shape))
+    model.add(Dropout(0.2))
+    
+    model.add(GRU(units=50, return_sequences=True))
+    model.add(Dropout(0.2))
+    
+    model.add(GRU(units=50, return_sequences=False))
+    model.add(Dropout(0.2))
+    
+    model.add(Dense(units=25))
+    model.add(Dense(units=1))
+    
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
+
+def create_lr_model(input_shape):
+    """
+    Builds a Linear Regression equivalent model using Keras.
+    """
+    model = Sequential()
+    model.add(Flatten(input_shape=input_shape))
+    model.add(Dense(units=1, activation='linear'))
+    
+    model.compile(optimizer='adam', loss='mean_squared_error')
+    return model
+
 def train_model(model, X_train, y_train, epochs=20, batch_size=32, validation_data=None):
     """
     Trains the LSTM model.
@@ -46,13 +77,15 @@ def train_model(model, X_train, y_train, epochs=20, batch_size=32, validation_da
 
 def evaluate_model(y_true, y_pred):
     """
-    Calculates RMSE, MAE, and R2 Score.
+    Calculates RMSE, MAE, MSE, and R2 Score.
     """
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
     
     return {
+        'MSE': mse,
         'RMSE': rmse,
         'MAE': mae,
         'R2_Score': r2

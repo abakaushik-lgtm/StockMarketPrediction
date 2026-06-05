@@ -2,13 +2,25 @@
 
 This project is a complete end-to-end Stock Market Price Prediction system built using Python, TensorFlow/Keras, and Streamlit. It uses a Long Short-Term Memory (LSTM) neural network to predict future stock closing prices based on historical market data.
 
-## Features
+## Project Objectives and Features ("Stand Out" Upgrade)
 
-- **Automated Data Collection:** Fetches historical stock data (Open, High, Low, Close, Volume) using the `yfinance` API.
-- **Data Preprocessing:** Handles missing values and scales features using `MinMaxScaler`.
-- **Deep Learning Model:** Implements a multi-layer LSTM network with Dropout layers for regularization.
-- **Evaluation Metrics:** Evaluates model performance using RMSE, MAE, and R² Score.
-- **Interactive UI:** Provides a user-friendly Streamlit web application for EDA, visualizations, and dynamic predictions.
+- **Automated Data Collection:** Fetches historical stock data (Open, High, Low, Close, Volume) using the `yfinance` API (Yahoo Finance).
+- **Multiple Stock Ticker Support:** Analyze any global stock by typing its ticker, with quick-select options for AAPL, TSLA, MSFT, and BTC-USD.
+- **Data Preprocessing & Technical Indicators:** 
+  - Handles missing values via forward/backward filling.
+  - Automatically calculates **SMA_20**, **EMA_20**, **RSI_14**, and **MACD**.
+  - Normalizes features using `MinMaxScaler` and creates sliding-window sequences.
+- **Model Comparison (LSTM vs GRU vs Linear Regression):** Train, evaluate, and dynamically compare the performance of three different architectural approaches in the Streamlit UI.
+- **Performance Metrics:** Evaluates model training and testing performance using **RMSE**, **MAE**, **MSE**, and **R² Score**.
+- **Interactive UI & Candlestick Visualizations:** Provides a Streamlit web application featuring a Plotly Candlestick chart overlaid with Moving Averages and MACD subplots.
+- **NLP Sentiment Analysis:** Analyzes the latest financial news using VADER sentiment analysis to inject live news polarity into the model predictions.
+- **7-30 Day Future Forecasting:** Uses an autoregressive loop to predict and project stock prices multiple days into the future.
+- **Cloud Deployment Ready:** Fully compatible with Streamlit Community Cloud for public deployment.
+
+## Application Screenshots
+
+*(After running the app locally, save a screenshot of the Streamlit dashboard as `screenshot.png` in the project root and it will display here)*
+![App Screenshot](screenshot.png)
 
 ## Project Architecture
 
