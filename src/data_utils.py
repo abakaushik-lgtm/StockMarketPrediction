@@ -1,0 +1,111 @@
+import yfinance as yf
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+import datetime
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+# Ensure the VADER lexicon is downloaded (safe to call multiple times)
+try:
+    nltk.data.find('sentiment/vader_lexicon.zip')
+except LookupError:
+    nltk.download('vader_lexicon', quiet=True)
+
+def download_stock_data(ticker, start_date='2015-01-01', end_date=None):
+    if end_date is None:
+        end_date = datetime.date.today().strftime('%Y-%m-%d')
+    
+    print(f"Downloading data for {ticker} from {start_date} to {end_date}...")
+    df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+    
+    if df.empty:
+        raise ValueError(f"No data found for ticker {ticker}.")
+    
+    df.reset_index(inplace=True)
+    return df
+
+def fetch_news_sentiment(ticker):
+    """
+    Fetches recent news from yfinance and calculates an average sentiment score.
+    Returns the average compound sentiment score and a list of headlines.
+    """
+    stock = yf.Ticker(ticker)
+    news = stock.news
+    
+    if not news:
+        return 0.0, []
+        
+    sia = SentimentIntensityAnalyzer()
+    compound_scores = []
+    headlines = []
+    
+    for article in news:
+        title = article.get('title', '')
+        if title:
+            score = sia.polarity_scores(title)['compound']
+            compound_scores.append(score)
+            headlines.append({'title': title, 'score': score})
+            
+    avg_score = np.mean(compound_scores) if compound_scores else 0.0
+    return avg_score, headlines
+
+def add_mock_sentiment_feature(df):
+    """
+    Generates a synthetic historical sentiment score loosely based on daily returns.
+    This allows us to train the multivariate LSTM even without historical news APIs.
+    """
+    # Calculate daily return percentage
+    returns = df['Close'].pct_change().fillna(0)
+    
+    # Base sentiment heavily on return, bounded between -1 and 1
+    # Adding some random noise to simulate real-world news variance
+    noise = np.random.normal(0, 0.2, size=len(df))
+    sentiment = np.clip((returns * 10) + noise, -1.0, 1.0)
+    
+    df['Sentiment_Score'] = sentiment
+    return df
+
+def preprocess_data(df, add_sentiment=True):
+    df.ffill(inplace=True)
+    df.bfill(inplace=True)
+    
+    if add_sentiment and 'Sentiment_Score' not in df.columns:
+        df = add_mock_sentiment_feature(df)
+        
+    return df
+
+def scale_data(data, feature_cols=['Close', 'Sentiment_Score']):
+    """
+    Scales multiple features using MinMaxScaler.
+    """
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    if isinstance(data, pd.DataFrame):
+        scaled_data = scaler.fit_transform(data[feature_cols].values)
+    else:
+        scaled_data = scaler.fit_transform(data)
+    return scaled_data, scaler
+
+def create_sequences(data, seq_length=60):
+    """
+    Creates sequences for multivariate input.
+    X shape: (samples, seq_length, n_features)
+    y shape: (samples, 1) - predicting only the Close price (feature 0)
+    """
+    X = []
+    y = []
+    for i in range(seq_length, len(data)):
+        # Include all features for X
+        X.append(data[i-seq_length:i, :])
+        # Include only the first feature (Close price) for y
+        y.append(data[i, 0])
+        
+    return np.array(X), np.array(y)
+
+def split_data(X, y, test_size=0.2):
+    split_index = int(len(X) * (1 - test_size))
+    X_train, X_test = X[:split_index], X[split_index:]
+    y_train, y_test = y[:split_index], y[split_index:]
+    
+    # X is already (samples, time steps, features) from create_sequences
+    return X_train, X_test, y_train, y_test
